@@ -1,3 +1,32 @@
+import React, { useState, ChangeEvent, FormEvent } from 'react'
+
+interface ProductData {
+  title: string
+  description: string
+  price: string
+  images: string[]
+}
+
+interface FormErrors {
+  title?: string
+  description?: string
+  price?: string
+  images?: string
+}
+
+interface ProductFormProps {
+  initialValues?: Partial<ProductData>
+  onSubmit: (data: ProductData) => void
+}
+
+// Mock upload function - replace with actual implementation
+const uploadImages = async (files: File[]): Promise<string[]> => {
+  // Simulate upload delay
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  // Return mock URLs - replace with actual upload logic
+  return files.map((file, index) => `https://example.com/image-${Date.now()}-${index}.jpg`)
+}
+
 const ProductForm: React.FC<ProductFormProps> = ({ initialValues = {}, onSubmit }) => {
   const [formData, setFormData] = useState<ProductData>({
     title: initialValues.title || '',
@@ -91,8 +120,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialValues = {}, onSubmit 
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <div>
-        <label htmlFor="title">Title</label>
+      <div className="form-group">
+        <label htmlFor="title" className="form-label">Product Title *</label>
         <input
           id="title"
           name="title"
@@ -100,24 +129,28 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialValues = {}, onSubmit 
           value={formData.title}
           onChange={handleInputChange}
           disabled={isSubmitting}
+          className="form-input"
+          placeholder="Enter product title"
         />
-        {errors.title && <span className="error">{errors.title}</span>}
+        {errors.title && <div className="form-error">{errors.title}</div>}
       </div>
 
-      <div>
-        <label htmlFor="description">Description</label>
+      <div className="form-group">
+        <label htmlFor="description" className="form-label">Description *</label>
         <textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleInputChange}
           disabled={isSubmitting}
+          className="form-textarea"
+          placeholder="Describe your product in detail"
         />
-        {errors.description && <span className="error">{errors.description}</span>}
+        {errors.description && <div className="form-error">{errors.description}</div>}
       </div>
 
-      <div>
-        <label htmlFor="price">Price</label>
+      <div className="form-group">
+        <label htmlFor="price" className="form-label">Price ($) *</label>
         <input
           id="price"
           name="price"
@@ -126,12 +159,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialValues = {}, onSubmit 
           onChange={handleInputChange}
           disabled={isSubmitting}
           step="0.01"
+          min="0"
+          className="form-input"
+          placeholder="0.00"
         />
-        {errors.price && <span className="error">{errors.price}</span>}
+        {errors.price && <div className="form-error">{errors.price}</div>}
       </div>
 
-      <div>
-        <label htmlFor="images">Images</label>
+      <div className="form-group">
+        <label htmlFor="images" className="form-label">Product Images *</label>
         <input
           id="images"
           name="images"
@@ -140,25 +176,32 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialValues = {}, onSubmit 
           multiple
           onChange={handleFileChange}
           disabled={isUploading || isSubmitting}
+          className="form-input"
         />
-        {errors.images && <span className="error">{errors.images}</span>}
-        {isUploading && <span>Uploading images...</span>}
-        <div className="image-preview">
-          {formData.images.map(url => (
-            <div key={url} className="thumbnail">
-              <img src={url} alt="Preview" />
-              <button type="button" onClick={() => removeImage(url)} disabled={isSubmitting}>
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
+        {errors.images && <div className="form-error">{errors.images}</div>}
+        {isUploading && (
+          <div style={{ marginTop: '10px', color: '#007bff' }}>
+            <span className="loading-spinner"></span> Uploading images...
+          </div>
+        )}
+        {formData.images.length > 0 && (
+          <div className="image-preview">
+            {formData.images.map(url => (
+              <div key={url} className="image-item">
+                <img src={url} alt="Product preview" />
+                <button type="button" onClick={() => removeImage(url)} disabled={isSubmitting}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {submitError && <div className="error">{submitError}</div>}
 
-      <button type="submit" disabled={isSubmitting || isUploading}>
-        {isSubmitting ? 'Submitting...' : 'Submit'}
+      <button type="submit" disabled={isSubmitting || isUploading} className="form-button">
+        {isSubmitting ? 'Submitting...' : 'Save Product'}
       </button>
     </form>
   )

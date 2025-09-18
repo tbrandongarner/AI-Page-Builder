@@ -1,3 +1,16 @@
+import React, { FC, useCallback, KeyboardEvent, ReactNode } from 'react'
+
+interface DashboardCardProps {
+  title: string
+  subtitle?: string
+  icon?: ReactNode
+  badge?: string | number
+  onClick?: () => void
+  className?: string
+  children?: ReactNode
+  footer?: ReactNode
+}
+
 const DashboardCard: FC<DashboardCardProps> = ({
   title,
   subtitle,

@@ -1,3 +1,16 @@
+import React, { useState, useEffect, useRef } from 'react'
+
+interface ScrapeResult {
+  title: string
+  description: string
+  price: number
+  images: string[]
+}
+
+interface ScrapeFormProps {
+  onScrapeComplete: (data: ScrapeResult) => void
+}
+
 const validateUrl = (url: string): boolean => {
   const trimmed = url.trim()
   try {
@@ -76,23 +89,34 @@ export default function ScrapeForm({ onScrapeComplete }: ScrapeFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="scrape-form">
+    <form onSubmit={handleSubmit}>
       <div className="form-group">
-        <label htmlFor="url">Product Page URL</label>
+        <label htmlFor="url" className="form-label">Product Page URL *</label>
         <input
-          type="text"
+          type="url"
           id="url"
           name="url"
           value={url}
           onChange={e => setUrl(e.target.value)}
-          placeholder="https://example.com/product"
+          placeholder="https://example.com/product-page"
           disabled={loading}
           className="form-input"
+          required
         />
+        <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+          Enter a product page URL to automatically extract product information
+        </div>
       </div>
       {error && <div className="form-error">{error}</div>}
-      <button type="submit" disabled={loading} className="form-button">
-        {loading ? 'Scraping...' : 'Scrape'}
+      <button type="submit" disabled={loading || !url.trim()} className="form-button">
+        {loading ? (
+          <>
+            <span className="loading-spinner" style={{ marginRight: '8px' }}></span>
+            Scraping...
+          </>
+        ) : (
+          'Scrape Product Data'
+        )}
       </button>
     </form>
   )

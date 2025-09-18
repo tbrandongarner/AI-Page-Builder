@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Page Builder</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="/src/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect } = React;
+        
+        // Simple Dashboard Card Component
+        const DashboardCard = ({ title, value, icon, trend }) => {
+            return React.createElement('div', { className: 'dashboard-card' },
+                React.createElement('div', { className: 'card-header' },
+                    React.createElement('h3', null, title),
+                    React.createElement('span', { className: 'card-icon' }, icon)
+                ),
+                React.createElement('div', { className: 'card-content' },
+                    React.createElement('div', { className: 'card-value' }, value),
+                    trend && React.createElement('div', { className: `card-trend ${trend.type}` }, trend.text)
+                )
+            );
+        };
+        
+        // Simple Sidebar Component
+        const Sidebar = ({ currentPage, setCurrentPage }) => {
+            const menuItems = [
+                { page: 'dashboard', label: 'Dashboard', icon: '📊' },
+                { page: 'generator', label: 'AI Generator', icon: '🤖' },
+                { page: 'projects', label: 'Projects', icon: '📁' },
+                { page: 'analytics', label: 'Analytics', icon: '📈' },
+                { page: 'settings', label: 'Settings', icon: '⚙️' }
+            ];
+            
+            return React.createElement('div', { className: 'sidebar' },
+                React.createElement('div', { className: 'sidebar-header' },
+                    React.createElement('h2', null, 'AI Page Builder')
+                ),
+                React.createElement('nav', { className: 'sidebar-nav' },
+                    menuItems.map(item => 
+                        React.createElement('button', {
+                            key: item.page,
+                            onClick: () => setCurrentPage(item.page),
+                            className: `nav-item ${currentPage === item.page ? 'active' : ''}`
+                        },
+                            React.createElement('span', { className: 'nav-icon' }, item.icon),
+                            React.createElement('span', { className: 'nav-label' }, item.label)
+                        )
+                    )
+                )
+            );
+        };
+        
+        // Dashboard Page
+        const DashboardPage = () => {
+            return React.createElement('div', { className: 'dashboard' },
+                React.createElement('div', { className: 'dashboard-header' },
+                    React.createElement('h1', null, 'Dashboard'),
+                    React.createElement('p', null, 'Welcome to your AI Page Builder dashboard')
+                ),
+                React.createElement('div', { className: 'dashboard-grid' },
+                    React.createElement(DashboardCard, {
+                        title: 'Total Pages',
+                        value: '24',
+                        icon: '📄',
+                        trend: { type: 'positive', text: '+12% this month' }
+                    }),
+                    React.createElement(DashboardCard, {
+                        title: 'Active Projects',
+                        value: '8',
+                        icon: '🚀',
+                        trend: { type: 'positive', text: '+3 new' }
+                    }),
+                    React.createElement(DashboardCard, {
+                        title: 'Conversions',
+                        value: '156',
+                        icon: '💰',
+                        trend: { type: 'positive', text: '+8.5%' }
+                    }),
+                    React.createElement(DashboardCard, {
+                        title: 'AI Generations',
+                        value: '342',
+                        icon: '🤖',
+                        trend: { type: 'neutral', text: 'This week' }
+                    })
+                )
+            );
+        };
+        
+        // Generator Page
+        const GeneratorPage = () => {
+            const [currentStep, setCurrentStep] = useState(1);
+            const [productData, setProductData] = useState({
+                name: '',
+                description: '',
+                price: '',
+                features: []
+            });
+            
+            const handleNext = () => {
+                if (currentStep < 3) setCurrentStep(currentStep + 1);
+            };
+            
+            const handlePrev = () => {
+                if (currentStep > 1) setCurrentStep(currentStep - 1);
+            };
+            
+            return React.createElement('div', { className: 'generator-page' },
+                React.createElement('div', { className: 'generator-header' },
+                    React.createElement('h1', null, 'AI Page Generator'),
+                    React.createElement('p', null, 'Create compelling product pages with AI')
+                ),
+                React.createElement('div', { className: 'progress-steps' },
+                    [1, 2, 3].map(step => 
+                        React.createElement('div', {
+                            key: step,
+                            className: `progress-step ${currentStep >= step ? 'active' : ''}`
+                        },
+                            React.createElement('div', { className: 'step-number' }, step),
+                            React.createElement('div', { className: 'step-label' }, 
+                                step === 1 ? 'Product Info' : step === 2 ? 'Generate Copy' : 'Preview & Export'
+                            )
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'generator-content' },
+                    currentStep === 1 && React.createElement('div', { className: 'step-card' },
+                        React.createElement('h3', null, 'Enter Product Information'),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Product Name'),
+                            React.createElement('input', {
+                                type: 'text',
+                                value: productData.name,
+                                onChange: (e) => setProductData({...productData, name: e.target.value}),
+                                placeholder: 'Enter product name'
+                            })
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Description'),
+                            React.createElement('textarea', {
+                                value: productData.description,
+                                onChange: (e) => setProductData({...productData, description: e.target.value}),
+                                placeholder: 'Enter product description',
+                                rows: 4
+                            })
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Price'),
+                            React.createElement('input', {
+                                type: 'text',
+                                value: productData.price,
+                                onChange: (e) => setProductData({...productData, price: e.target.value}),
+                                placeholder: '$0.00'
+                            })
+                        )
+                    ),
+                    currentStep === 2 && React.createElement('div', { className: 'step-card' },
+                        React.createElement('h3', null, 'AI Copy Generation'),
+                        React.createElement('p', null, 'AI will generate compelling copy based on your product information.'),
+                        React.createElement('div', { className: 'generated-copy' },
+                            React.createElement('h4', null, 'Generated Copy:'),
+                            React.createElement('div', { className: 'copy-preview' },
+                                'AI-generated copy will appear here...'
+                            )
+                        )
+                    ),
+                    currentStep === 3 && React.createElement('div', { className: 'step-card' },
+                        React.createElement('h3', null, 'Preview & Export'),
+                        React.createElement('p', null, 'Review your generated page and export when ready.'),
+                        React.createElement('div', { className: 'page-preview' },
+                            React.createElement('h4', null, 'Page Preview:'),
+                            React.createElement('div', { className: 'preview-content' },
+                                'Your generated page preview will appear here...'
+                            )
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'step-actions' },
+                    currentStep > 1 && React.createElement('button', {
+                        className: 'btn btn-secondary',
+                        onClick: handlePrev
+                    }, 'Previous'),
+                    currentStep < 3 && React.createElement('button', {
+                        className: 'btn btn-primary',
+                        onClick: handleNext
+                    }, 'Next'),
+                    currentStep === 3 && React.createElement('button', {
+                        className: 'btn btn-success'
+                    }, 'Export Page')
+                )
+            );
+        };
+        
+        // Other Pages
+        const ProjectsPage = () => React.createElement('div', { className: 'page' },
+            React.createElement('h1', null, 'Projects'),
+            React.createElement('p', null, 'Manage your AI-generated projects here.')
+        );
+        
+        const AnalyticsPage = () => React.createElement('div', { className: 'page' },
+            React.createElement('h1', null, 'Analytics'),
+            React.createElement('p', null, 'View your page performance analytics.')
+        );
+        
+        const SettingsPage = () => React.createElement('div', { className: 'page' },
+            React.createElement('h1', null, 'Settings'),
+            React.createElement('p', null, 'Configure your AI Page Builder settings.')
+        );
+        
+        // Main App Component
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            
+            const renderPage = () => {
+                switch(currentPage) {
+                    case 'dashboard': return React.createElement(DashboardPage);
+                    case 'generator': return React.createElement(GeneratorPage);
+                    case 'projects': return React.createElement(ProjectsPage);
+                    case 'analytics': return React.createElement(AnalyticsPage);
+                    case 'settings': return React.createElement(SettingsPage);
+                    default: return React.createElement(DashboardPage);
+                }
+            };
+            
+            return React.createElement('div', { className: 'app' },
+                React.createElement(Sidebar, { currentPage, setCurrentPage }),
+                React.createElement('div', { className: 'main-content' },
+                    renderPage()
+                )
+            );
+        };
+        
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>

@@ -1,4 +1,79 @@
+import React, { useState, useEffect, useCallback, memo } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+
+interface Section {
+  id: string
+  title: string
+  content: React.ReactNode
+}
+
+interface SidebarProps {
+  sections?: Section[]
+  className?: string
+}
+
+interface NavigationItem {
+  id: string
+  title: string
+  path: string
+  icon: string
+  description?: string
+}
+
+const navigationItems: NavigationItem[] = [
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    path: '/',
+    icon: '📊',
+    description: 'View your projects'
+  },
+  {
+    id: 'generator',
+    title: 'AI Generator',
+    path: '/generator',
+    icon: '🤖',
+    description: 'Create product pages with AI'
+  },
+  {
+    id: 'projects',
+    title: 'Projects',
+    path: '/projects',
+    icon: '📁',
+    description: 'Manage your projects'
+  },
+  {
+    id: 'analytics',
+    title: 'Analytics',
+    path: '/analytics',
+    icon: '📈',
+    description: 'View performance metrics'
+  },
+  {
+    id: 'templates',
+    title: 'Templates',
+    path: '/templates',
+    icon: '📄',
+    description: 'Browse page templates'
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    path: '/integrations',
+    icon: '🔗',
+    description: 'Connect external services'
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    path: '/settings',
+    icon: '⚙️',
+    description: 'Configure your preferences'
+  }
+]
+
 function Sidebar({ sections, className = '' }: SidebarProps): JSX.Element {
+  const location = useLocation()
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
@@ -19,14 +94,43 @@ function Sidebar({ sections, className = '' }: SidebarProps): JSX.Element {
 
   return (
     <aside className={`sidebar ${className}`.trim()}>
-      {sections.map(section => (
-        <SectionItem
-          key={section.id}
-          section={section}
-          isOpen={!!openSections[section.id]}
-          onToggle={toggleSection}
-        />
-      ))}
+      <div className="sidebar__header">
+        <h2 className="sidebar__title">AI Page Builder</h2>
+      </div>
+      
+      <nav className="sidebar__nav">
+        <h3 className="sidebar__nav-title">Navigation</h3>
+        <ul className="sidebar__nav-list">
+          {navigationItems.map(item => (
+            <li key={item.id} className="sidebar__nav-item">
+              <Link 
+                to={item.path} 
+                className={`sidebar__nav-link ${
+                  location.pathname === item.path ? 'sidebar__nav-link--active' : ''
+                }`}
+                title={item.description}
+              >
+                <span className="sidebar__nav-icon">{item.icon}</span>
+                <span className="sidebar__nav-text">{item.title}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {sections && sections.length > 0 && (
+        <div className="sidebar__sections">
+          <h3 className="sidebar__sections-title">Sections</h3>
+          {sections.map(section => (
+            <SectionItem
+              key={section.id}
+              section={section}
+              isOpen={!!openSections[section.id]}
+              onToggle={toggleSection}
+            />
+          ))}
+        </div>
+      )}
     </aside>
   )
 }
