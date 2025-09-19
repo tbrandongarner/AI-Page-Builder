@@ -1079,3 +1079,159 @@ code {
     align-items: flex-start;
   }
 }
+
+:root {
+  --color-primary: #007bff;
+  --color-success: #28a745;
+  --color-danger: #dc3545;
+  --color-warning: #ffc107;
+  --color-info: #17a2b8;
+
+  --toast-surface: #ffffff;
+  --toast-text: #1f2933;
+  --toast-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+  --toast-border: rgba(15, 23, 42, 0.08);
+  --toast-gap: 12px;
+  --toast-max-width: min(420px, calc(100vw - 32px));
+  --toast-border-radius: 12px;
+  --toast-z-index: 1400;
+
+  --toast-info-bg: rgba(0, 123, 255, 0.12);
+  --toast-info-border: rgba(0, 123, 255, 0.45);
+  --toast-info-focus: rgba(0, 123, 255, 0.3);
+
+  --toast-success-bg: rgba(40, 167, 69, 0.12);
+  --toast-success-border: rgba(40, 167, 69, 0.4);
+  --toast-success-focus: rgba(40, 167, 69, 0.28);
+
+  --toast-warning-bg: rgba(255, 193, 7, 0.18);
+  --toast-warning-border: rgba(255, 193, 7, 0.45);
+  --toast-warning-focus: rgba(255, 193, 7, 0.35);
+
+  --toast-error-bg: rgba(220, 53, 69, 0.14);
+  --toast-error-border: rgba(220, 53, 69, 0.45);
+  --toast-error-focus: rgba(220, 53, 69, 0.32);
+}
+
+/* Toast notifications */
+.notification-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--toast-gap);
+  width: var(--toast-max-width);
+  max-width: 100%;
+  pointer-events: none;
+  z-index: var(--toast-z-index);
+}
+
+.notification-toast {
+  --toast-type-color: var(--color-primary);
+  --toast-type-bg: var(--toast-info-bg);
+  --toast-type-border: var(--toast-info-border);
+  --toast-type-focus: var(--toast-info-focus);
+
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  width: 100%;
+  background: linear-gradient(0deg, var(--toast-type-bg), var(--toast-type-bg)),
+    var(--toast-surface);
+  border: 1px solid var(--toast-type-border);
+  border-left: 4px solid var(--toast-type-color);
+  border-radius: var(--toast-border-radius);
+  box-shadow: var(--toast-shadow);
+  color: var(--toast-text);
+  pointer-events: auto;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-toast + .notification-toast {
+  margin-top: 0;
+}
+
+.notification-toast:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 44px rgba(15, 23, 42, 0.18);
+}
+
+.notification-toast__message {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.notification-toast__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--toast-type-color);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-toast__close:hover {
+  background-color: var(--toast-type-bg);
+}
+
+.notification-toast__close:focus {
+  outline: none;
+}
+
+.notification-toast__close:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px var(--toast-type-focus);
+}
+
+.notification-toast--info {
+  --toast-type-color: var(--color-primary);
+  --toast-type-bg: var(--toast-info-bg);
+  --toast-type-border: var(--toast-info-border);
+  --toast-type-focus: var(--toast-info-focus);
+}
+
+.notification-toast--success {
+  --toast-type-color: var(--color-success);
+  --toast-type-bg: var(--toast-success-bg);
+  --toast-type-border: var(--toast-success-border);
+  --toast-type-focus: var(--toast-success-focus);
+}
+
+.notification-toast--warning {
+  --toast-type-color: var(--color-warning);
+  --toast-type-bg: var(--toast-warning-bg);
+  --toast-type-border: var(--toast-warning-border);
+  --toast-type-focus: var(--toast-warning-focus);
+}
+
+.notification-toast--error,
+.notification-toast--danger {
+  --toast-type-color: var(--color-danger);
+  --toast-type-bg: var(--toast-error-bg);
+  --toast-type-border: var(--toast-error-border);
+  --toast-type-focus: var(--toast-error-focus);
+}
+
+@media (max-width: 768px) {
+  .notification-toast-container {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    align-items: stretch;
+  }
+
+  .notification-toast {
+    width: 100%;
+  }
+}
