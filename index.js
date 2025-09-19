@@ -35,7 +35,7 @@ async function connectDatabase() {
   })
 }
 
-function handleErrors(err, req, res, next) {
+function handleErrors(err, req, res, _next) {
   const status = err.statusCode || 500
   res.status(status).json({
     error: {

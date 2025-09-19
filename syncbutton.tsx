@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 
+declare global {
+  interface Window {
+    REACT_APP_SHOPIFY_SYNC_URL?: string
+    REACT_APP_WOOCOMMERCE_SYNC_URL?: string
+  }
+}
+
 type EcommercePlatform = 'shopify' | 'woocommerce'
 
 type SyncResult<ResponseType> = ResponseType
@@ -40,9 +47,9 @@ async function fetchWithTimeout<ResponseType>(
 
 function getEndpoint(platform: EcommercePlatform): string {
   if (platform === 'shopify') {
-    return (window as any).REACT_APP_SHOPIFY_SYNC_URL || '/api/shopify/sync'
+    return window.REACT_APP_SHOPIFY_SYNC_URL || '/api/shopify/sync'
   }
-  return (window as any).REACT_APP_WOOCOMMERCE_SYNC_URL || '/api/woocommerce/sync'
+  return window.REACT_APP_WOOCOMMERCE_SYNC_URL || '/api/woocommerce/sync'
 }
 
 function getLabel(platform: EcommercePlatform, loading: boolean): string {

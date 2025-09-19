@@ -367,7 +367,7 @@ const HomePage: React.FC = () => (
   <div className="dashboard-page">
     <div className="dashboard-header">
       <h1>Dashboard</h1>
-      <p>Welcome back! Here's what's happening with your projects.</p>
+      <p>Welcome back! Here&apos;s what&apos;s happening with your projects.</p>
     </div>
 
     <div className="dashboard-stats">
@@ -542,7 +542,7 @@ const NotFoundPage: React.FC = () => (
   <div className="not-found">
     <h1>404</h1>
     <h2>Page Not Found</h2>
-    <p>The page you're looking for doesn't exist or has been moved.</p>
+    <p>The page you&apos;re looking for doesn&apos;t exist or has been moved.</p>
     <div className="not-found-actions">
       <Link to="/" className="btn btn-primary">
         Go Home

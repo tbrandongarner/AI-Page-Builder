@@ -1,11 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+const DEFAULT_PORT = 3000
+const PORT = Number.parseInt(process.env.VITE_PORT ?? '', 10)
+const shouldOpenBrowser = (process.env.VITE_OPEN_BROWSER ?? '').toLowerCase() === 'true'
+
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
-    open: true
-  }
+    port: Number.isFinite(PORT) ? PORT : DEFAULT_PORT,
+    open: shouldOpenBrowser,
+  },
 })
