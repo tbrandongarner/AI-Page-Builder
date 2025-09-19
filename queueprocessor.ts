@@ -1,3 +1,10 @@
+import { Queue, QueueScheduler, Worker, Job } from 'bullmq'
+import IORedis from 'ioredis'
+import axios from 'axios'
+import { parse } from 'node-html-parser'
+import { Configuration, OpenAIApi } from 'openai'
+import { v4 as uuidv4 } from 'uuid'
+
 const REDIS_URL = process.env.REDIS_URL
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS
@@ -24,9 +31,21 @@ const openai = new OpenAIApi(new Configuration({ apiKey: OPENAI_API_KEY }))
 type ScrapeJobData = { url: string; payloadId: string }
 type AIJobData = { metadata: Record<string, any>; payloadId: string }
 
-let worker: Worker | null = null
+type AIResultHandler = (params: {
+  payloadId: string
+  metadata: Record<string, any>
+  result: string
+}) => Promise<void> | void
 
-export async function processQueue() {
+type ProcessQueueOptions = {
+  aiResultHandler?: AIResultHandler
+}
+
+let worker: Worker | null = null
+let aiResultHandler: AIResultHandler | undefined
+
+export async function processQueue(options?: ProcessQueueOptions): Promise<void> {
+  aiResultHandler = options?.aiResultHandler
   worker = new Worker(
     QUEUE_NAME,
     async (job: Job) => {
@@ -59,7 +78,7 @@ export async function processQueue() {
   })
 }
 
-async function processScrapeJob(data: ScrapeJobData) {
+async function processScrapeJob(data: ScrapeJobData): Promise<void> {
   const { url, payloadId } = data
   let hostname: string
   try {
@@ -94,7 +113,7 @@ async function processScrapeJob(data: ScrapeJobData) {
   }
 }
 
-async function processAIJob(data: AIJobData) {
+async function processAIJob(data: AIJobData): Promise<void> {
   const { metadata, payloadId } = data
   try {
     const prompt = `
@@ -108,8 +127,12 @@ ${JSON.stringify(metadata)}
       temperature: 0.7,
     })
     const result = completion.data.choices[0].text?.trim() || ''
-    console.log(`AI job ${payloadId} result:`, result)
-    // TODO: persist result to database or service
+    if (aiResultHandler) {
+      await aiResultHandler({ payloadId, metadata, result })
+    } else {
+      console.log(`AI job ${payloadId} result:`, result)
+      console.warn('AI result handler not configured; result not persisted.')
+    }
   } catch (err) {
     console.error(`AI job ${payloadId} failed`, err)
     throw err
@@ -119,7 +142,7 @@ ${JSON.stringify(metadata)}
 export async function scheduleJob(opts: {
   name: 'scrape' | 'ai'
   data: ScrapeJobData | AIJobData
-}) {
+}): Promise<void> {
   const payloadId = (opts.data as any).payloadId || uuidv4()
   const jobData = { ...opts.data, payloadId }
   await queue.add(opts.name, jobData, {
@@ -130,7 +153,7 @@ export async function scheduleJob(opts: {
   })
 }
 
-export async function retryJob(payloadId: string) {
+export async function retryJob(payloadId: string): Promise<void> {
   const jobs = await queue.getJobs(['waiting', 'failed', 'delayed'])
   const job = jobs.find(j => (j.data as any).payloadId === payloadId)
   if (job) {
