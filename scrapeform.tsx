@@ -1,14 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
-
-interface ScrapeResult {
-  title: string
-  description: string
-  price: number
-  images: string[]
-}
+import React, { useEffect, useRef, useState } from 'react'
+import type { ProductInput } from './types'
 
 interface ScrapeFormProps {
-  onScrapeComplete: (data: ScrapeResult) => void
+  onScrapeComplete: (data: ProductInput) => void
 }
 
 const validateUrl = (url: string): boolean => {
@@ -21,41 +15,41 @@ const validateUrl = (url: string): boolean => {
   }
 }
 
-const startScraping = async (url: string, signal: AbortSignal): Promise<ScrapeResult> => {
-  try {
-    const response = await fetch('/api/scrape', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-      signal,
-    })
-    if (!response.ok) {
-      let errorData = {}
-      try {
-        errorData = await response.json()
-      } catch {}
-      const message = (errorData as any).message || 'Scraping failed'
-      throw new Error(message)
+async function requestScrape(url: string, signal: AbortSignal): Promise<ProductInput> {
+  const response = await fetch('/api/scrape', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+    signal,
+  })
+
+  if (!response.ok) {
+    let message = 'Scraping failed.'
+    try {
+      const data = await response.json()
+      if (typeof data?.message === 'string') {
+        message = data.message
+      }
+    } catch {
+      // Ignore JSON parse errors
     }
-    return await response.json()
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
-      throw new Error('Scraping was cancelled.')
-    }
-    throw new Error(err.message || 'Network error occurred.')
+    throw new Error(message)
   }
+
+  const payload = (await response.json()) as ProductInput
+  return payload
 }
 
-export default function ScrapeForm({ onScrapeComplete }: ScrapeFormProps) {
+const ScrapeForm: React.FC<ScrapeFormProps> = ({ onScrapeComplete }) => {
   const [url, setUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const isMounted = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isMountedRef = useRef(true)
 
   useEffect(() => {
     return () => {
-      isMounted.current = false
+      isMountedRef.current = false
       abortControllerRef.current?.abort()
     }
   }, [])
@@ -64,34 +58,39 @@ export default function ScrapeForm({ onScrapeComplete }: ScrapeFormProps) {
     e.preventDefault()
     const trimmedUrl = url.trim()
     setError(null)
+
     if (!validateUrl(trimmedUrl)) {
       setError('Please enter a valid URL (http or https).')
       return
     }
+
     abortControllerRef.current?.abort()
     const controller = new AbortController()
     abortControllerRef.current = controller
+
     setLoading(true)
     try {
-      const result = await startScraping(trimmedUrl, controller.signal)
-      if (isMounted.current) {
-        onScrapeComplete?.(result)
+      const result = await requestScrape(trimmedUrl, controller.signal)
+      if (isMountedRef.current) {
+        onScrapeComplete(result)
       }
-    } catch (err: any) {
-      if (isMounted.current) {
-        setError(err.message || 'An unexpected error occurred.')
-      }
+    } catch (err) {
+      if (!isMountedRef.current) return
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.'
+      setError(message)
     } finally {
-      if (isMounted.current) {
+      if (isMountedRef.current) {
         setLoading(false)
       }
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="scrape-form">
       <div className="form-group">
-        <label htmlFor="url" className="form-label">Product Page URL *</label>
+        <label htmlFor="url" className="form-label">
+          Product page URL *
+        </label>
         <input
           type="url"
           id="url"
@@ -103,16 +102,13 @@ export default function ScrapeForm({ onScrapeComplete }: ScrapeFormProps) {
           className="form-input"
           required
         />
-        <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-          Enter a product page URL to automatically extract product information
-        </div>
+        <div className="form-hint">Enter a product page URL to automatically extract product information.</div>
       </div>
       {error && <div className="form-error">{error}</div>}
       <button type="submit" disabled={loading || !url.trim()} className="form-button">
         {loading ? (
           <>
-            <span className="loading-spinner" style={{ marginRight: '8px' }}></span>
-            Scraping...
+            <span className="loading-spinner" aria-hidden="true" /> Scraping…
           </>
         ) : (
           'Scrape Product Data'
@@ -121,3 +117,5 @@ export default function ScrapeForm({ onScrapeComplete }: ScrapeFormProps) {
     </form>
   )
 }
+
+export default ScrapeForm

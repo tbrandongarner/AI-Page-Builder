@@ -1,6 +1,23 @@
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+interface AuthContextType {
+  user: User | null
+  loading: boolean
+  error: string | null
+  signIn: (provider: string) => Promise<void>
+  signOut: () => Promise<void>
+  getSession: () => Promise<User | null>
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,13 +41,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ provider }),
       })
       if (!res.ok) {
-        const errData = await res.json()
+        const errData = await res.json().catch(() => ({}))
         throw new Error(errData.message || 'Sign in failed')
       }
       const data = await res.json()
       setUser(data.user)
-    } catch (err: any) {
-      setError(err.message || 'Unknown error')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
@@ -45,8 +62,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Sign out failed')
       }
       setUser(null)
-    } catch (err: any) {
-      setError(err.message || 'Unknown error')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
@@ -62,9 +79,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (isMounted) {
           setUser(sessionUser)
         }
-      } catch (err: any) {
+      } catch (err) {
         if (isMounted) {
-          setError(err.message || 'Unknown error')
+          setError(err instanceof Error ? err.message : 'Unknown error')
         }
       } finally {
         if (isMounted) {
@@ -80,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo(
     () => ({ user, loading, error, signIn, signOut, getSession }),
-    [user, loading, error, signIn, signOut, getSession]
+    [user, loading, error, signIn, signOut, getSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,4 +1,4 @@
-import React, { FC, useCallback, KeyboardEvent, ReactNode } from 'react'
+import React, { FC, KeyboardEvent, ReactNode, useCallback } from 'react'
 
 interface DashboardCardProps {
   title: string
@@ -22,26 +22,24 @@ const DashboardCard: FC<DashboardCardProps> = ({
   footer,
 }) => {
   const handleClick = useCallback(() => {
-    if (onClick) {
-      onClick()
-    }
+    onClick?.()
   }, [onClick])
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
+    (event: KeyboardEvent<HTMLDivElement>) => {
       if (!onClick) return
-      const { key, code } = e
-      if (key === 'Enter' || key === ' ' || key === 'Spacebar' || code === 'Space') {
-        e.preventDefault()
+      const { key } = event
+      if (key === 'Enter' || key === ' ' || key === 'Spacebar') {
+        event.preventDefault()
         onClick()
       }
     },
-    [onClick]
+    [onClick],
   )
 
   return (
     <div
-      className={`dashboard-card ${className}`}
+      className={`dashboard-card ${className}`.trim()}
       onClick={onClick ? handleClick : undefined}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
