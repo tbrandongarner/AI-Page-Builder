@@ -1,84 +1,63 @@
-const AVAILABLE_FRAMEWORKS: Framework[] = [
-  'React',
-  'Next.js',
-  'Gatsby',
-  'Angular',
-  'Vue.js',
-  'Svelte',
-  'Ember.js',
+import React, { ChangeEvent, FC, useMemo } from 'react'
+import type { MarketingFramework } from './types'
+
+const AVAILABLE_FRAMEWORKS: MarketingFramework[] = ['AIDA', 'PAS', 'BAB', 'FAB', '4Ps']
+
+interface FrameworkSelectorProps {
+  content: string
+  selectedFramework?: MarketingFramework
+  onSelectFramework: (framework: MarketingFramework) => void
+}
+
+const keywordFrameworkMap: Array<{ framework: MarketingFramework; keywords: RegExp[] }> = [
+  { framework: 'AIDA', keywords: [/attention/i, /desire/i, /action/i] },
+  { framework: 'PAS', keywords: [/problem/i, /pain/i, /struggle/i, /solution/i] },
+  { framework: 'BAB', keywords: [/before/i, /after/i, /bridge/i] },
+  { framework: 'FAB', keywords: [/feature/i, /advantage/i, /benefit/i] },
+  { framework: '4Ps', keywords: [/promise/i, /proof/i, /price/i, /promotion/i] },
 ]
 
-const getRecommendedFrameworks = (content: string): Framework[] => {
+function getRecommendedFrameworks(content: string): MarketingFramework[] {
   const lower = content.toLowerCase()
-  const recommendations = new Set<Framework>()
+  const recommendations = new Set<MarketingFramework>()
 
-  if (lower.includes('ssr') || lower.includes('server side')) {
-    recommendations.add('Next.js')
-  }
-  if (lower.includes('static')) {
-    recommendations.add('Gatsby')
-  }
-  if (lower.includes('react') || lower.includes('hooks')) {
-    recommendations.add('React')
-  }
-  if (lower.includes('angular') || lower.includes('typescript')) {
-    recommendations.add('Angular')
-  }
-  if (lower.includes('vue')) {
-    recommendations.add('Vue.js')
-  }
-  if (lower.includes('svelte')) {
-    recommendations.add('Svelte')
-  }
-  if (lower.includes('ember')) {
-    recommendations.add('Ember.js')
+  keywordFrameworkMap.forEach(({ framework, keywords }) => {
+    if (keywords.some(regex => regex.test(lower))) {
+      recommendations.add(framework)
+    }
+  })
+
+  if (recommendations.size === 0) {
+    return AVAILABLE_FRAMEWORKS
   }
 
   return Array.from(recommendations)
 }
 
-const formatFrameworkOption = (option: Framework): string =>
-  option.replace(/\./g, '').replace(/\b\w/g, char => char.toUpperCase())
-
-interface FrameworkSelectorProps {
-  content: string
-  selectedFramework?: Framework
-  onSelectFramework: (framework: Framework) => void
-}
-
-const FrameworkSelector: FC<FrameworkSelectorProps> = ({
-  content,
-  selectedFramework,
-  onSelectFramework,
-}) => {
+const FrameworkSelector: FC<FrameworkSelectorProps> = ({ content, selectedFramework, onSelectFramework }) => {
   const options = useMemo(() => getRecommendedFrameworks(content), [content])
 
-  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    onSelectFramework(e.target.value as Framework)
+  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    onSelectFramework(event.target.value as MarketingFramework)
   }
 
   return (
     <div className="framework-selector">
-      <label htmlFor="framework-select">Select Framework:</label>
+      <label htmlFor="framework-select">Preferred framework</label>
       <select
         id="framework-select"
-        value={selectedFramework || ''}
+        value={selectedFramework ?? ''}
         onChange={handleChange}
+        className="form-input"
       >
         <option value="" disabled>
-          -- Choose a framework --
+          {options.length === 0 ? 'No frameworks detected' : 'Choose a framework'}
         </option>
-        {options.length > 0 ? (
-          options.map(option => (
-            <option key={option} value={option}>
-              {formatFrameworkOption(option)}
-            </option>
-          ))
-        ) : (
-          <option value="" disabled>
-            No recommendations available
+        {options.map(option => (
+          <option key={option} value={option}>
+            {option}
           </option>
-        )}
+        ))}
       </select>
     </div>
   )

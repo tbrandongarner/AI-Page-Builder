@@ -1,19 +1,29 @@
+import React, { FC, useCallback, useState } from 'react'
+
+interface PreviewToggleProps {
+  initialPreview?: boolean
+  onToggle?: (isPreview: boolean) => void
+  activeLabel?: string
+  inactiveLabel?: string
+  className?: string
+}
+
 const PreviewToggle: FC<PreviewToggleProps> = ({
   initialPreview = false,
   onToggle,
-  activeLabel = 'Switch to Edit',
-  inactiveLabel = 'Preview',
+  activeLabel = 'Preview',
+  inactiveLabel = 'Switch to preview',
   className = '',
 }) => {
-  const [isPreview, setIsPreview] = useState<boolean>(initialPreview);
+  const [isPreview, setIsPreview] = useState<boolean>(initialPreview)
 
   const toggleView = useCallback(() => {
     setIsPreview(prev => {
-      const next = !prev;
-      onToggle?.(next);
-      return next;
-    });
-  }, [onToggle]);
+      const next = !prev
+      onToggle?.(next)
+      return next
+    })
+  }, [onToggle])
 
   return (
     <button
@@ -25,7 +35,7 @@ const PreviewToggle: FC<PreviewToggleProps> = ({
     >
       {isPreview ? activeLabel : inactiveLabel}
     </button>
-  );
-};
+  )
+}
 
-export default React.memo(PreviewToggle);
+export default React.memo(PreviewToggle)
