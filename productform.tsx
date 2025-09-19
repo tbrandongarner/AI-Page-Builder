@@ -412,7 +412,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialValues, onSubmit }) =>
 
           <div className="form-group">
             <label htmlFor="whatsIncluded" className="form-label">
-              What's included
+              What&apos;s included
             </label>
             <textarea
               id="whatsIncluded"
@@ -430,7 +430,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialValues, onSubmit }) =>
 
       {hasOptionalContent ? (
         <div className="form-hint">
-          Great! We'll use your benefits, features and keywords to tailor the generated copy.
+          Great! We&apos;ll use your benefits, features and keywords to tailor the generated copy.
         </div>
       ) : (
         <div className="form-hint">Add optional details to help the AI craft stronger copy.</div>

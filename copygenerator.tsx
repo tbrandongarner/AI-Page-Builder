@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   GeneratedBlock,
   GeneratedCopyResult,
@@ -107,7 +107,7 @@ function summariseBenefits(product: ProductInput): string {
 
 function buildBlocks(product: ProductInput, framework: MarketingFramework): GeneratedBlock[] {
   const blocks: GeneratedBlock[] = []
-  const { title, description, keyBenefits = [], features = [], useCases = [], whatsIncluded = [], price } = product
+  const { title, keyBenefits = [], features = [], useCases = [], whatsIncluded = [], price } = product
   const formattedPrice = price ? `$${price.toFixed(2)}` : 'Great value'
 
   blocks.push({
@@ -246,7 +246,7 @@ function buildHtmlDocument(product: ProductInput, blocks: GeneratedBlock[]): str
   `
 }
 
-function buildFallbackCopy(product: ProductInput, prompt: string): GeneratedCopyResult {
+function buildFallbackCopy(product: ProductInput, _prompt: string): GeneratedCopyResult {
   const framework = pickFramework(product)
   const blocks = buildBlocks(product, framework)
   const headline = HEADLINE_TEMPLATES[framework](product)
@@ -299,12 +299,12 @@ const CopyGenerator: React.FC<CopyGeneratorProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setResult(null)
     setError(null)
     setLoading(false)
     setIsGenerating?.(false)
-  }
+  }, [setIsGenerating])
 
   const productSignature = useMemo(() => {
     if (!product) return ''
@@ -378,7 +378,7 @@ const CopyGenerator: React.FC<CopyGeneratorProps> = ({
       cancelled = true
       controller.abort()
     }
-  }, [prompt, product, productSignature])
+  }, [prompt, product, productSignature, onCopyGenerated, resetState, setIsGenerating])
 
   if (!readyToGenerate) {
     return (

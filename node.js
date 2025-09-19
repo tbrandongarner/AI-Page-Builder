@@ -1,7 +1,7 @@
-const path = require('path')
-const dotenv = require('dotenv')
-const winston = require('winston')
-const util = require('util')
+import path from 'node:path'
+import util from 'node:util'
+import dotenv from 'dotenv'
+import winston from 'winston'
 
 const envPath = path.resolve(process.cwd(), '.env')
 const envResult = dotenv.config({ path: envPath })
@@ -21,22 +21,22 @@ const logger = winston.createLogger({
     winston.format.printf(({ timestamp, level, message, ...meta }) => {
       const metaString = Object.keys(meta).length ? JSON.stringify(meta) : ''
       return `${timestamp} [${level.toUpperCase()}]: ${message} ${metaString}`
-    })
+    }),
   ),
   transports: [new winston.transports.Console()],
-  exitOnError: false
+  exitOnError: false,
 })
 
 function shutdown(code) {
   process.exitCode = code
   setTimeout(() => {
-    process.exit(process.exitCode)
+    process.exit(process.exitCode ?? code)
   }, 100)
 }
 
 function setupEnvironment() {
   const required = ['NODE_ENV', 'PORT', 'API_KEY']
-  const missing = required.filter((key) => !process.env[key])
+  const missing = required.filter(key => !process.env[key])
   if (missing.length) {
     logger.error(`Missing required environment variables: ${missing.join(', ')}`)
     shutdown(1)
@@ -52,17 +52,17 @@ function logProcessInfo() {
     memory: {
       rss: `${(usage.rss / 1024 / 1024).toFixed(2)} MB`,
       heapTotal: `${(usage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
-      heapUsed: `${(usage.heapUsed / 1024 / 1024).toFixed(2)} MB`
-    }
+      heapUsed: `${(usage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+    },
   })
 }
 
 function handleProcessEvents() {
-  process.on('uncaughtException', (err) => {
+  process.on('uncaughtException', err => {
     logger.error('Uncaught Exception', { message: err.message, stack: err.stack })
     shutdown(1)
   })
-  process.on('unhandledRejection', (reason) => {
+  process.on('unhandledRejection', reason => {
     if (reason instanceof Error) {
       logger.error('Unhandled Rejection', { message: reason.message, stack: reason.stack })
     } else {
@@ -88,4 +88,7 @@ async function initNodeProcess() {
   // Add additional startup logic here (e.g., start server, connect to DB)
 }
 
-initNodeProcess()
+initNodeProcess().catch(error => {
+  logger.error('Failed to initialise node process', { message: error.message, stack: error.stack })
+  shutdown(1)
+})

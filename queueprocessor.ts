@@ -2,7 +2,7 @@ import { Queue, QueueScheduler, Worker, Job } from 'bullmq'
 import IORedis from 'ioredis'
 import axios from 'axios'
 import { parse } from 'node-html-parser'
-import { Configuration, OpenAIApi } from 'openai'
+import OpenAI from 'openai'
 import { v4 as uuidv4 } from 'uuid'
 
 const REDIS_URL = process.env.REDIS_URL
@@ -19,21 +19,42 @@ if (!ALLOWED_DOMAINS) {
   throw new Error('Missing required environment variable: ALLOWED_DOMAINS')
 }
 
-const allowedDomains = ALLOWED_DOMAINS.split(',').map(d => d.trim().toLowerCase())
+const allowedDomains = ALLOWED_DOMAINS.split(',').map(domain => domain.trim().toLowerCase())
 
 const QUEUE_NAME = 'job-queue'
+
+type JobName = 'scrape' | 'ai'
+
+interface BaseJobData {
+  payloadId?: string
+}
+
+interface ScrapeJobData extends BaseJobData {
+  url: string
+}
+
+interface ScrapeMetadata {
+  title: string
+  description: string
+  images: string[]
+  url: string
+}
+
+interface AIJobData extends BaseJobData {
+  metadata: ScrapeMetadata
+}
+
+type JobPayload = ScrapeJobData | AIJobData
+
 const connection = new IORedis(REDIS_URL)
-const queue = new Queue(QUEUE_NAME, { connection })
-const scheduler = new QueueScheduler(QUEUE_NAME, { connection })
+const queue = new Queue<JobPayload, void, JobName>(QUEUE_NAME, { connection })
+const scheduler = new QueueScheduler<JobPayload, JobName>(QUEUE_NAME, { connection })
 
-const openai = new OpenAIApi(new Configuration({ apiKey: OPENAI_API_KEY }))
-
-type ScrapeJobData = { url: string; payloadId: string }
-type AIJobData = { metadata: Record<string, any>; payloadId: string }
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
 
 type AIResultHandler = (params: {
   payloadId: string
-  metadata: Record<string, any>
+  metadata: ScrapeMetadata
   result: string
 }) => Promise<void> | void
 
@@ -43,16 +64,26 @@ type ProcessQueueOptions = {
 
 let worker: Worker | null = null
 let aiResultHandler: AIResultHandler | undefined
+let schedulerReady: Promise<void> | null = null
 
 export async function processQueue(options?: ProcessQueueOptions): Promise<void> {
   aiResultHandler = options?.aiResultHandler
-  worker = new Worker(
+  if (!schedulerReady) {
+    schedulerReady = scheduler.waitUntilReady()
+  }
+  await schedulerReady
+
+  if (worker) {
+    return
+  }
+  worker = new Worker<JobPayload, void, JobName>(
     QUEUE_NAME,
-    async (job: Job) => {
+    async (job: Job<JobPayload, unknown, JobName>) => {
+      const jobWithId = job.data as JobPayload & { payloadId: string }
       if (job.name === 'scrape') {
-        await processScrapeJob(job.data as ScrapeJobData)
+        await processScrapeJob(jobWithId)
       } else if (job.name === 'ai') {
-        await processAIJob(job.data as AIJobData)
+        await processAIJob(jobWithId)
       } else {
         throw new Error(`Unknown job type: ${job.name}`)
       }
@@ -78,7 +109,7 @@ export async function processQueue(options?: ProcessQueueOptions): Promise<void>
   })
 }
 
-async function processScrapeJob(data: ScrapeJobData): Promise<void> {
+async function processScrapeJob(data: ScrapeJobData & { payloadId: string }): Promise<void> {
   const { url, payloadId } = data
   let hostname: string
   try {
@@ -87,20 +118,33 @@ async function processScrapeJob(data: ScrapeJobData): Promise<void> {
   } catch {
     throw new Error(`Invalid URL: ${url}`)
   }
-  if (!allowedDomains.includes(hostname)) {
+  const isAllowedDomain = allowedDomains.some(domain =>
+    hostname === domain || hostname.endsWith(`.${domain}`),
+  )
+  if (!isAllowedDomain) {
     throw new Error(`Domain not allowed: ${hostname}`)
   }
 
   try {
     const response = await axios.get(url, { timeout: 15000 })
     const root = parse(response.data)
-    const metadata: Record<string, any> = {
-      title: root.querySelector('title')?.text || '',
+    const imageCandidates = Array.from(root.querySelectorAll('img'))
+      .map(img => img.getAttribute('src') || img.getAttribute('data-src'))
+      .filter((src): src is string => Boolean(src))
+      .map(src => {
+        try {
+          return new URL(src, url).toString()
+        } catch {
+          return null
+        }
+      })
+      .filter((src): src is string => Boolean(src))
+    const uniqueImages = Array.from(new Set(imageCandidates))
+    const metadata: ScrapeMetadata = {
+      title: root.querySelector('title')?.text?.trim() || '',
       description:
-        root.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-      images: Array.from(root.querySelectorAll('img')).map(img =>
-        img.getAttribute('src')
-      ),
+        root.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() || '',
+      images: uniqueImages,
       url,
     }
     await scheduleJob({
@@ -113,20 +157,22 @@ async function processScrapeJob(data: ScrapeJobData): Promise<void> {
   }
 }
 
-async function processAIJob(data: AIJobData): Promise<void> {
+async function processAIJob(data: AIJobData & { payloadId: string }): Promise<void> {
   const { metadata, payloadId } = data
   try {
-    const prompt = `
-Generate an SEO-optimized product page title and description based on the following metadata:
-${JSON.stringify(metadata)}
-`
-    const completion = await openai.createCompletion({
-      model: 'gpt-4',
-      prompt,
-      max_tokens: 500,
+    const prompt = [
+      'Generate an SEO-optimized product page title and description.',
+      'Respond with concise paragraphs and bullet points where it improves readability.',
+      `Metadata: ${JSON.stringify(metadata)}`,
+    ].join('\n')
+
+    const completion = await openai.responses.create({
+      model: 'gpt-4o-mini',
       temperature: 0.7,
+      max_output_tokens: 500,
+      input: prompt,
     })
-    const result = completion.data.choices[0].text?.trim() || ''
+    const result = completion.output_text?.trim() ?? ''
     if (aiResultHandler) {
       await aiResultHandler({ payloadId, metadata, result })
     } else {
@@ -139,12 +185,13 @@ ${JSON.stringify(metadata)}
   }
 }
 
-export async function scheduleJob(opts: {
-  name: 'scrape' | 'ai'
-  data: ScrapeJobData | AIJobData
-}): Promise<void> {
-  const payloadId = (opts.data as any).payloadId || uuidv4()
-  const jobData = { ...opts.data, payloadId }
+type ScheduleOptions =
+  | { name: 'scrape'; data: ScrapeJobData }
+  | { name: 'ai'; data: AIJobData }
+
+export async function scheduleJob(opts: ScheduleOptions): Promise<void> {
+  const payloadId = opts.data.payloadId ?? uuidv4()
+  const jobData = { ...opts.data, payloadId } as JobPayload
   await queue.add(opts.name, jobData, {
     attempts: 3,
     backoff: { type: 'exponential', delay: 5000 },
@@ -155,10 +202,13 @@ export async function scheduleJob(opts: {
 
 export async function retryJob(payloadId: string): Promise<void> {
   const jobs = await queue.getJobs(['waiting', 'failed', 'delayed'])
-  const job = jobs.find(j => (j.data as any).payloadId === payloadId)
+  const job = jobs.find(j => {
+    const data = j.data as JobPayload
+    return data.payloadId === payloadId
+  })
   if (job) {
     const { name, data, opts } = job
-    await queue.add(name, data, {
+    await queue.add(name as JobName, data as JobPayload, {
       attempts: opts.attempts || 3,
       backoff: opts.backoff || { type: 'exponential', delay: 5000 },
       removeOnComplete: true,
@@ -173,6 +223,7 @@ async function shutdown() {
   try {
     if (worker) {
       await worker.close()
+      worker = null
     }
     await scheduler.close()
     await queue.close()
